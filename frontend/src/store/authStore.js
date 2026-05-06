@@ -27,11 +27,26 @@ export const useAuthStore = create((set) => ({
     registerUser: async (data) => {
         try {
             const res = await axios.post(`${API_URL}/api/auth/register`, data);
-            set({ currentUser: res.data.user, role: "user" });
-            toast.success(res.data.message || "Registration successful!");
+            toast.success(res.data.message); // e.g., "An OTP has been sent..."
+            return res.data; // Return the response which contains the mobile number
         } catch (error) {
             console.error("Register user failed:", error.response?.data || error.message);
             toast.error(error.response?.data?.message || "User registration failed!");
+            throw error; // Throw error to be caught in the component
+        }
+    },
+
+    // --- NEW function to verify OTP and login ---
+    verifyOtpAndLogin: async (data) => {
+        try {
+            const res = await axios.post(`${API_URL}/api/auth/verify-otp`, data);
+            // On successful verification, the backend sends back the user data and token (in a cookie)
+            set({ currentUser: res.data.user, role: "user" });
+            toast.success("Account verified successfully!");
+            return res.data;
+        } catch (error) {
+            console.error("OTP Verification failed:", error.response?.data || error.message);
+            toast.error(error.response?.data?.message || "OTP Verification failed!");
             throw error;
         }
     },
@@ -76,11 +91,10 @@ export const useAuthStore = create((set) => ({
         try {
             const res = await axios.post(`${API_URL}/api/transporter/register`, data);
             set({ currentUser: res.data.transporter, role: "transporter" });
-            toast.success(res.data.message || "Transporter registered successfully!");
+            toast.success("Transporter registered successfully!");
         } catch (error) {
             console.error("Register transporter failed:", error.response?.data || error.message);
             toast.error(error.response?.data?.message || "Transporter registration failed!");
-            throw error;
         }
     },
 

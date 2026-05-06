@@ -102,10 +102,10 @@ export default function Login() {
                                 </div>
                             </motion.div>
                             <motion.div variants={itemVariants}>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Email or Mobile Number</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span className="text-gray-400">📧</span></div>
-                                    <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="Enter your email or mobile" className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" required />
+                                    <input type="email" value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="Enter your email address" className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" required />
                                 </div>
                             </motion.div>
                             <motion.div variants={itemVariants}>

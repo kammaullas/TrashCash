@@ -11,7 +11,6 @@ const Register = () => {
     const [loading, setLoading] = useState(false); // State to handle submission process
     const [formData, setFormData] = useState({
         name: "",
-        mobile: "",
         email: "",
         password: "",
         street: "",
@@ -31,11 +30,9 @@ const Register = () => {
         setLoading(true);
 
         try {
-            let response;
             if (role === "user") {
-                response = await registerUser({
+                await registerUser({
                     name: formData.name,
-                    mobile: formData.mobile,
                     email: formData.email,
                     password: formData.password,
                     street: formData.street,
@@ -44,10 +41,8 @@ const Register = () => {
                     pinCode: formData.pinCode,
                 });
             } else {
-                // Assuming registerTransporter is also updated to send an OTP
-                response = await registerTransporter({
+                await registerTransporter({
                     name: formData.name,
-                    mobile: formData.mobile,
                     email: formData.email,
                     password: formData.password,
                     vehicleModel: formData.vehicleModel,
@@ -55,19 +50,14 @@ const Register = () => {
                 });
             }
 
-            // If the API call is successful, navigate to the OTP page
-            // and pass the mobile number in the route's state
-            if (response && response.data.mobile) {
-                navigate('/verify-otp', {
-                    state: { mobile: response.data.mobile }
-                });
+            // Registration directly logs the user in — navigate to dashboard
+            if (role === "user") {
+                navigate('/dashboard');
             } else {
-                // This is a fallback in case the API response is not as expected
-                toast.error("Something went wrong. Please try registering again.");
+                navigate('/transporter-dashboard');
             }
 
         } catch (error) {
-            // Error toasts are handled in the Zustand store
             console.error("Registration submission failed:", error);
         } finally {
             setLoading(false);
@@ -252,30 +242,9 @@ const Register = () => {
                                 </div>
                             </motion.div>
 
-                            {/* MOBILE NUMBER FIELD - ADDED */}
                             <motion.div variants={itemVariants}>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Mobile Number
-                                </label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-400">📱</span>
-                                    </div>
-                                    <input
-                                        type="tel"
-                                        name="mobile"
-                                        placeholder="Your 10-digit mobile number"
-                                        value={formData.mobile}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                        required
-                                    />
-                                </div>
-                            </motion.div>
-
-                            <motion.div variants={itemVariants}>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email Address (Optional)
+                                    Email Address
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -288,6 +257,7 @@ const Register = () => {
                                         value={formData.email}
                                         onChange={handleChange}
                                         className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        required
                                     />
                                 </div>
                             </motion.div>

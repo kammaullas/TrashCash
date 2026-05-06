@@ -4,45 +4,32 @@ import cloudinary from "../config/cloudinary.js";
 import User from "../models/user.model.js";
 import { generateToken } from "../utils/jwt.js";
 import Collection from "../models/collection.model.js";
-import otpGenerator from 'otp-generator';
-import { sendVerificationSms } from '../utils/sms.js';
 
 const login = async (req, res) => {
     try {
-        const { loginId, password } = req.body; // loginId can be email or mobile
+        const { loginId, password } = req.body;
         console.log("📥 Login request received:", { loginId });
 
         if (!loginId || !password) {
-            console.warn("⚠️ Missing login identifier or password");
-            return res.status(400).json({ message: "Please enter your email/mobile and password" });
+            return res.status(400).json({ message: "Please enter your email and password" });
         }
 
-        // Find user by either email or mobile number
-        const user = await User.findOne({
-            $or: [{ email: loginId }, { mobile: loginId }],
-        });
+        // Find user by email
+        const user = await User.findOne({ email: loginId });
         console.log("🔍 User lookup result:", user ? user._id : "Not found");
 
         if (!user) {
-            console.warn("❌ Login failed: User not found for:", loginId);
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log("🔑 Password match:", isMatch);
-
         if (!isMatch) {
-            console.warn("❌ Login failed: Password mismatch for user:", user._id);
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // Generate token
         generateToken(user._id, res);
-        console.log("✅ Token generated for user:", user._id);
 
         const { password: pwd, ...userData } = user.toObject();
-        console.log("✅ Login successful. User data:", userData);
-
         res.status(200).json({
             message: "Login successful",
             user: userData
@@ -57,57 +44,43 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
     try {
-        const { name, email, mobile, password, street, city, state, pinCode } = req.body;
+        const { name, email, password, street, city, state, pinCode } = req.body;
 
-        if (!name || !mobile || !password) {
-            return res.status(400).json({ message: "Name, mobile, and password are required" });
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "Name, email, and password are required" });
         }
 
-        let user = await User.findOne({ mobile });
-
-        // If user exists and is already verified, block registration
-        if (user && user.isVerified) {
-            return res.status(400).json({ message: "This mobile number is already registered and verified." });
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: "This email is already registered." });
         }
 
-        // Generate a 6-digit numeric OTP
-        const otp = otpGenerator.generate(6, {
-            upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false,
-        });
-
-        // Set OTP expiry to 10 minutes from now
-        const otpExpires = Date.now() + 10 * 60 * 1000;
-        const hashedOtp = await bcrypt.hash(otp, 10);
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // If user exists (but is not verified), update them. Otherwise, create a new one.
-        if (user) {
-            user.name = name;
-            user.email = email;
-            user.password = hashedPassword;
-            user.address = { street, city, state, pinCode };
-            user.otp = hashedOtp;
-            user.otpExpires = otpExpires;
-            await user.save();
-        } else {
-            user = await User.create({
-                name,
-                email,
-                mobile,
-                password: hashedPassword,
-                address: { street, city, state, pinCode },
-                otp: hashedOtp,
-                otpExpires: otpExpires,
-            });
-        }
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            address: { street, city, state, pinCode },
+            isVerified: true,
+        });
 
-        // Send the SMS
-        await sendVerificationSms(mobile, otp);
+        // Generate and upload QR code
+        const qrDataUrl = await QRCode.toDataURL(user._id.toString());
+        const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
+            folder: "qr_codes",
+            public_id: `qr_${user._id}`,
+            overwrite: true
+        });
+        user.qrCodeUrl = uploadResult.secure_url;
+        await user.save();
 
+        generateToken(user._id, res);
+
+        const { password: pwd, ...userData } = user.toObject();
         res.status(201).json({
-            message: `Registration successful! An OTP has been sent to ${mobile}.`,
-            // Send mobile number back to the frontend to use on the verification screen
-            data: { mobile: user.mobile }
+            message: "Registration successful!",
+            user: userData
         });
 
     } catch (error) {
@@ -116,76 +89,34 @@ const register = async (req, res) => {
     }
 };
 
-const verifyOtp = async (req, res) => {
-    try {
-        const { mobile, otp } = req.body;
-
-        const user = await User.findOne({
-            mobile,
-            otpExpires: { $gt: Date.now() } // Check that OTP is not expired
-        });
-
-        if (!user) {
-            return res.status(400).json({ message: "Invalid OTP, user not found, or OTP has expired." });
-        }
-
-        const isMatch = await bcrypt.compare(otp, user.otp);
-        if (!isMatch) {
-            return res.status(400).json({ message: "Invalid OTP." });
-        }
-
-        // --- Verification Success ---
-        user.isVerified = true;
-        user.otp = undefined;       // Clear OTP fields for security
-        user.otpExpires = undefined;
-
-        // Generate and upload QR code now that user is fully verified
-        const qrDataUrl = await QRCode.toDataURL(user._id.toString());
-        const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
-            folder: "qr_codes",
-            public_id: `qr_${user._id}`,
-            overwrite: true
-        });
-        user.qrCodeUrl = uploadResult.secure_url;
-
-        await user.save();
-
-        // Generate JWT token and log them in
-        generateToken(user._id, res);
-
-        const { password: pwd, ...userResponse } = user.toObject();
-
-        res.status(200).json({
-            message: "Account verified successfully!",
-            user: userResponse
-        });
-
-    } catch (error) {
-        console.error("OTP Verification error:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-};
 
 const forgotPassword = async (req, res) => {
     try {
-        const { mobile } = req.body;
-        const user = await User.findOne({ mobile });
+        const { email } = req.body;
 
-        if (!user) {
-            return res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
+        if (!email) {
+            return res.status(400).json({ message: "Email is required." });
         }
 
-        const otp = otpGenerator.generate(6, {
-            upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false,
-        });
+        const user = await User.findOne({ email });
+        if (!user) {
+            // Generic message to avoid user enumeration
+            return res.status(200).json({ message: "If an account with this email exists, a reset token has been sent." });
+        }
 
-        user.otp = await bcrypt.hash(otp, 10);
-        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+        // Generate a simple 6-digit numeric token (stored as plain text for simplicity)
+        const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+        const resetTokenExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
+        user.otp = await bcrypt.hash(resetToken, 10);
+        user.otpExpires = resetTokenExpires;
         await user.save();
-        await sendVerificationSms(mobile, otp);
 
-        res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
+        // TODO: Send resetToken via email (e.g. using nodemailer)
+        // For now, log it to the console for development
+        console.log(`🔑 Password reset token for ${email}: ${resetToken}`);
+
+        res.status(200).json({ message: "If an account with this email exists, a reset token has been sent." });
 
     } catch (error) {
         console.error("Forgot Password error:", error);
@@ -193,27 +124,26 @@ const forgotPassword = async (req, res) => {
     }
 };
 
-// --- FIX: Removed 'export' from the function definition ---
 const resetPassword = async (req, res) => {
     try {
-        const { mobile, otp, newPassword } = req.body;
+        const { email, otp, newPassword } = req.body;
 
-        if (!mobile || !otp || !newPassword) {
-            return res.status(400).json({ message: "Mobile, OTP, and new password are required." });
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ message: "Email, token, and new password are required." });
         }
 
         const user = await User.findOne({
-            mobile,
+            email,
             otpExpires: { $gt: Date.now() },
         });
 
         if (!user) {
-            return res.status(400).json({ message: "Invalid OTP, user not found, or OTP has expired." });
+            return res.status(400).json({ message: "Invalid token, user not found, or token has expired." });
         }
 
         const isMatch = await bcrypt.compare(otp, user.otp);
         if (!isMatch) {
-            return res.status(400).json({ message: "Invalid OTP." });
+            return res.status(400).json({ message: "Invalid token." });
         }
 
         user.password = await bcrypt.hash(newPassword, 10);
@@ -228,7 +158,6 @@ const resetPassword = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 
 const logout = (req, res) => {
@@ -261,7 +190,7 @@ const updateProfile = async (req, res) => {
             userId,
             { $set: updateData },
             { new: true, runValidators: true }
-        ).select("-password"); // remove password from response
+        ).select("-password");
 
         res.status(200).json({
             message: "Profile updated successfully",
@@ -276,7 +205,7 @@ const updateProfile = async (req, res) => {
 
 const checkUser = async (req, res) => {
     try {
-        const userId = req.user.id; // set in protectedRoute after JWT verification
+        const userId = req.user.id;
 
         const user = await User.findById(userId).select("-password");
 
@@ -296,7 +225,7 @@ const checkUser = async (req, res) => {
 
 const getQR = async (req, res) => {
     try {
-        const userId = req.user.id; // From protectedRoute after JWT verification
+        const userId = req.user.id;
 
         const user = await User.findById(userId).select("qrCodeUrl");
 
@@ -316,12 +245,11 @@ const getQR = async (req, res) => {
 
 const getCollections = async (req, res) => {
     try {
-        const userId = req.user.id; // From JWT after protectedRoute
+        const userId = req.user.id;
 
-        // Fetch collections for the logged-in user
         const collections = await Collection.find({ user: userId })
-            .populate("transporter", "name email") // Include transporter name & email
-            .sort({ createdAt: -1 }); // Newest first
+            .populate("transporter", "name email")
+            .sort({ createdAt: -1 });
 
         if (!collections.length) {
             return res.status(404).json({ message: "No collection history found" });
@@ -340,7 +268,7 @@ const getCollections = async (req, res) => {
 
 const getWallet = async (req, res) => {
     try {
-        const userId = req.user.id; // From JWT after protectedRoute
+        const userId = req.user.id;
 
         const user = await User.findById(userId).select("walletBalance");
 
@@ -358,4 +286,4 @@ const getWallet = async (req, res) => {
     }
 };
 
-export { login, register, logout, updateProfile, checkUser, getQR, getCollections, getWallet, verifyOtp, forgotPassword, resetPassword };
+export { login, register, logout, updateProfile, checkUser, getQR, getCollections, getWallet, forgotPassword, resetPassword };

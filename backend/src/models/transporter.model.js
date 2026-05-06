@@ -10,14 +10,8 @@ const transporterSchema = new Schema({
   },
   email: {
     type: String,
-    required: false, // Email is now optional
+    required: true,
     unique: true,
-    sparse: true // Ensures unique constraint only applies to documents with an email
-  },
-  mobile: {
-    type: String,
-    required: true, // Mobile number is now required
-    unique: true   // Mobile number must be unique for login
   },
   password: {
     type: String,

@@ -15,7 +15,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors(
     {
-        origin:"http://localhost:5173",
+        origin: function (origin, callback) {
+            // Allow local development and any vercel deployment
+            if (!origin || origin.startsWith("http://localhost") || origin.endsWith(".vercel.app") || origin.endsWith(".onrender.com")) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         credentials: true,
     }
 ));

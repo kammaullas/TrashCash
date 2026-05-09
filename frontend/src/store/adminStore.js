@@ -6,7 +6,7 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 // Use environment variable for the API URL with a fallback for development
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_URL = import.meta.env.VITE_API_URL || "https://trashcash.onrender.com";
 const ADMIN_API_URL = `${API_URL}/api/admin`;
 
 // Define the Zustand store for admin state management

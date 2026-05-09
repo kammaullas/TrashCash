@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useAuthStore } from "./authStore";
 
 axios.defaults.withCredentials = true;
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_URL = import.meta.env.VITE_API_URL || "https://trashcash.onrender.com";
 const TRANSPORTER_API_URL = `${API_URL}/api/transporter`;
 
 export const useTransporterStore = create((set) => ({

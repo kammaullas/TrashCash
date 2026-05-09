@@ -4,8 +4,8 @@ import { useAuthStore } from "./authStore"; // Adjust path if needed
 import toast from "react-hot-toast";
 
 axios.defaults.withCredentials = true;
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
-const RECYCLER_API_URL = "http://localhost:5001/api/recycler"
+const API_URL = import.meta.env.VITE_API_URL || "https://trashcash.onrender.com";
+const RECYCLER_API_URL = `${API_URL}/api/recycler`;
 
 export const useRecyclerStore = create((set) => ({
     history: [],

@@ -3,7 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 axios.defaults.withCredentials = true;
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_URL = import.meta.env.VITE_API_URL || "https://trashcash.onrender.com";
 
 export const useAuthStore = create((set) => ({
     currentUser: null,

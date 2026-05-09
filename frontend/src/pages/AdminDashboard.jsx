@@ -329,7 +329,6 @@ const ManageUsers = () => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -339,7 +338,6 @@ const ManageUsers = () => {
                                 <tr key={user._id}>
                                     <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{user.email || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{user.mobile}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{formatAddress(user.address)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap flex space-x-4">
                                         <button onClick={() => handleEditClick(user)} className="text-blue-600 hover:text-blue-900"><EditIcon /></button>
@@ -404,7 +402,7 @@ const ManageTransporters = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet (₹)</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle Info</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -414,7 +412,7 @@ const ManageTransporters = () => {
                             {transporters.map(t => (
                                 <tr key={t._id}>
                                     <td className="px-6 py-4 whitespace-nowrap">{t.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{t.mobile}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{t.email}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{(t.walletBalance || 0).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{formatVehicleInfo(t.vehicleInfo)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap flex space-x-4">
@@ -657,7 +655,7 @@ const Modal = ({ children, onClose, title }) => (
 const UpdateUserModal = ({ user, onUpdate, onClose }) => {
     const [formData, setFormData] = useState({
         name: user.name || '',
-        mobile: user.mobile || '',
+        email: user.email || '',
         walletBalance: user.walletBalance || 0,
         street: user.address?.street || '',
         city: user.address?.city || '',
@@ -671,10 +669,10 @@ const UpdateUserModal = ({ user, onUpdate, onClose }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const { name, mobile, walletBalance, street, city, state, pinCode } = formData;
+        const { name, email, walletBalance, street, city, state, pinCode } = formData;
         onUpdate({
             name,
-            mobile,
+            email,
             walletBalance: Number(walletBalance),
             address: { street, city, state, pinCode }
         });
@@ -684,7 +682,7 @@ const UpdateUserModal = ({ user, onUpdate, onClose }) => {
         <Modal onClose={onClose} title="Edit User">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name" className="w-full border p-2 rounded" />
-                <input type="text" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="Mobile" className="w-full border p-2 rounded" />
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" className="w-full border p-2 rounded" />
                 {/* <input type="number" name="walletBalance" value={formData.walletBalance} onChange={handleChange} placeholder="Wallet Balance" className="w-full border p-2 rounded" step="0.01" /> */}
                 <input type="text" name="street" value={formData.street} onChange={handleChange} placeholder="Street" className="w-full border p-2 rounded" />
                 <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="City" className="w-full border p-2 rounded" />
@@ -707,16 +705,15 @@ const CreateTransporterModal = ({ onCreate, onClose }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const { name, email, mobile, password, model, licensePlate } = formData;
-        onCreate({ name, email, mobile, password, vehicleInfo: { model, licensePlate } });
+        const { name, email, password, model, licensePlate } = formData;
+        onCreate({ name, email, password, vehicleInfo: { model, licensePlate } });
     };
 
     return (
         <Modal onClose={onClose} title="Create New Transporter">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <input type="text" name="name" placeholder="Name" onChange={handleChange} className="w-full p-2 border rounded" required />
-                <input type="email" name="email" placeholder="Email (optional)" onChange={handleChange} className="w-full p-2 border rounded" />
-                <input type="text" name="mobile" placeholder="Mobile" onChange={handleChange} className="w-full p-2 border rounded" required />
+                <input type="email" name="email" placeholder="Email" onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="password" name="password" placeholder="Password" onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="text" name="model" placeholder="Vehicle Model" onChange={handleChange} className="w-full p-2 border rounded" />
                 <input type="text" name="licensePlate" placeholder="License Plate" onChange={handleChange} className="w-full p-2 border rounded" required />
@@ -733,7 +730,6 @@ const UpdateTransporterModal = ({ transporter, onUpdate, onClose }) => {
     const [formData, setFormData] = useState({
         name: transporter.name || '',
         email: transporter.email || '',
-        mobile: transporter.mobile || '',
         walletBalance: transporter.walletBalance || 0,
         model: transporter.vehicleInfo?.model || '',
         licensePlate: transporter.vehicleInfo?.licensePlate || ''
@@ -745,11 +741,10 @@ const UpdateTransporterModal = ({ transporter, onUpdate, onClose }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const { name, email, mobile, walletBalance, model, licensePlate } = formData;
+        const { name, email, walletBalance, model, licensePlate } = formData;
         onUpdate({
             name,
             email,
-            mobile,
             walletBalance: Number(walletBalance),
             vehicleInfo: { model, licensePlate }
         });
@@ -760,7 +755,6 @@ const UpdateTransporterModal = ({ transporter, onUpdate, onClose }) => {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name" className="w-full p-2 border rounded" />
                 <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" className="w-full p-2 border rounded" />
-                <input type="text" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="Mobile" className="w-full p-2 border rounded" />
                 <input type="number" name="walletBalance" value={formData.walletBalance} onChange={handleChange} placeholder="Wallet Balance" className="w-full p-2 border rounded" step="0.01" />
                 <input type="text" name="model" value={formData.model} onChange={handleChange} placeholder="Vehicle Model" className="w-full p-2 border rounded" />
                 <input type="text" name="licensePlate" value={formData.licensePlate} onChange={handleChange} placeholder="License Plate" className="w-full p-2 border rounded" required />
@@ -884,7 +878,6 @@ const UserDetail = () => {
                     </div>
                     <div>
                         <p className="text-gray-600">Address: <span className="text-gray-900 font-medium">{formatAddress(user.address)}</span></p>
-                        <p className="text-gray-600">Phone: <span className="text-gray-900 font-medium">{user.phone || 'N/A'}</span></p>
                     </div>
                 </div>
             </div>
@@ -1048,9 +1041,9 @@ const ManageRecyclers = () => {
 };
 
 
-// --- Create Recycler Modal (FIXED) ---
+// --- Create Recycler Modal ---
 const CreateRecyclerModal = ({ onCreate, onClose }) => {
-    const [formData, setFormData] = useState({ name: '', email: '', mobile: '', password: '', address: '', city: '', state: '', zipCode: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', address: '', city: '', state: '', zipCode: '' });
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -1058,9 +1051,9 @@ const CreateRecyclerModal = ({ onCreate, onClose }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const { name, email, mobile, password, address, city, state, zipCode } = formData;
+        const { name, email, password, address, city, state, zipCode } = formData;
         onCreate({
-            name, email, mobile, password,
+            name, email, password,
             location: { address, city, state, zipCode }
         });
     };
@@ -1069,8 +1062,7 @@ const CreateRecyclerModal = ({ onCreate, onClose }) => {
         <Modal onClose={onClose} title="Create New Recycler">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <input type="text" name="name" placeholder="Name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded" required />
-                <input type="email" name="email" placeholder="Email (optional)" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded" />
-                <input type="text" name="mobile" placeholder="Mobile" value={formData.mobile} onChange={handleChange} className="w-full p-2 border rounded" required />
+                <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="text" name="address" placeholder="Address" value={formData.address} onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="text" name="city" placeholder="City" value={formData.city} onChange={handleChange} className="w-full p-2 border rounded" required />
@@ -1260,7 +1252,6 @@ const UpdateRecyclerModal = ({ recycler, onUpdate, onClose }) => {
     const [formData, setFormData] = useState({
         name: recycler.name || '',
         email: recycler.email || '',
-        mobile: recycler.mobile || '',
         address: recycler.location?.address || '',
         city: recycler.location?.city || '',
         state: recycler.location?.state || '',
@@ -1273,9 +1264,9 @@ const UpdateRecyclerModal = ({ recycler, onUpdate, onClose }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const { name, email, mobile, address, city, state, zipCode } = formData;
+        const { name, email, address, city, state, zipCode } = formData;
         onUpdate({
-            name, email, mobile,
+            name, email,
             location: { address, city, state, zipCode }
         });
     };
@@ -1284,8 +1275,7 @@ const UpdateRecyclerModal = ({ recycler, onUpdate, onClose }) => {
         <Modal onClose={onClose} title="Update Recycler">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <input type="text" name="name" placeholder="Name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded" required />
-                <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded" />
-                <input type="text" name="mobile" placeholder="Mobile" value={formData.mobile} onChange={handleChange} className="w-full p-2 border rounded" required />
+                <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="text" name="address" placeholder="Address" value={formData.address} onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="text" name="city" placeholder="City" value={formData.city} onChange={handleChange} className="w-full p-2 border rounded" required />
                 <input type="text" name="state" placeholder="State" value={formData.state} onChange={handleChange} className="w-full p-2 border rounded" required />

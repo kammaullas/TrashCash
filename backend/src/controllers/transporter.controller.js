@@ -9,41 +9,32 @@ import User from '../models/user.model.js';
 
 const register = async (req, res) => {
     try {
-        const { name, email, mobile, password, vehicleModel, licensePlate } = req.body;
+        const { name, email, password, vehicleModel, licensePlate } = req.body;
 
         // 1. Validate inputs
-        if (!name || !mobile || !password || !licensePlate) {
-            return res.status(400).json({ message: "Name, mobile, password, and license plate are required" });
+        if (!name || !email || !password || !licensePlate) {
+            return res.status(400).json({ message: "Name, email, password, and license plate are required" });
         }
 
-        // 2. Check duplicate mobile
-        const existingTransporterByMobile = await Transporter.findOne({ mobile });
-        if (existingTransporterByMobile) {
-            return res.status(400).json({ message: "Mobile number already registered" });
+        // 2. Check duplicate email
+        const existingTransporterByEmail = await Transporter.findOne({ email });
+        if (existingTransporterByEmail) {
+            return res.status(400).json({ message: "Email already registered" });
         }
 
-        // 3. Check duplicate email if provided
-        if (email) {
-            const existingTransporterByEmail = await Transporter.findOne({ email });
-            if (existingTransporterByEmail) {
-                return res.status(400).json({ message: "Email already registered" });
-            }
-        }
-
-        // 4. Check duplicate license plate
+        // 3. Check duplicate license plate
         const existingLicense = await Transporter.findOne({ "vehicleInfo.licensePlate": licensePlate });
         if (existingLicense) {
             return res.status(400).json({ message: "License plate already registered" });
         }
 
-        // 5. Hash password
+        // 4. Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 6. Create transporter (without qrCode yet)
+        // 5. Create transporter (without qrCode yet)
         const newTransporter = await Transporter.create({
             name,
-            email, // Optional
-            mobile, // Required
+            email,
             password: hashedPassword,
             vehicleInfo: {
                 model: vehicleModel || "",
@@ -51,24 +42,24 @@ const register = async (req, res) => {
             }
         });
 
-        // 7. Generate QR code (contains transporter ID)
+        // 6. Generate QR code (contains transporter ID)
         const qrDataUrl = await QRCode.toDataURL(newTransporter._id.toString());
 
-        // 8. Upload QR to cloudinary
+        // 7. Upload QR to cloudinary
         const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
             folder: "qr_codes",
             public_id: `transporter_qr_${newTransporter._id}`,
             overwrite: true
         });
 
-        // 9. Save QR code URL in DB
+        // 8. Save QR code URL in DB
         newTransporter.qrCodeUrl = uploadResult.secure_url;
         await newTransporter.save();
 
-        // 10. Generate token for authentication
+        // 9. Generate token for authentication
         generateToken(newTransporter._id, res);
 
-        // 11. Response
+        // 10. Response
         const { password: pwd, ...transporterData } = newTransporter.toObject();
         res.status(201).json({
             message: "Transporter registered successfully",
@@ -83,17 +74,15 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { loginId, password } = req.body;
+        const { email, password } = req.body;
 
         // 1. Validate input
-        if (!loginId || !password) {
-            return res.status(400).json({ message: "Login ID and password are required" });
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email and password are required" });
         }
 
-        // 2. Find transporter by email or mobile
-        const transporter = await Transporter.findOne({
-            $or: [{ email: loginId }, { mobile: loginId }]
-        });
+        // 2. Find transporter by email
+        const transporter = await Transporter.findOne({ email });
         if (!transporter) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -117,70 +106,6 @@ const login = async (req, res) => {
     } catch (error) {
         console.error("Transporter login error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
-    }
-};
-
-const forgotPassword = async (req, res) => {
-    try {
-        const { mobile } = req.body;
-        const transporter = await Transporter.findOne({ mobile });
-
-        // For security, always send a generic success message
-        if (!transporter) {
-            return res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
-        }
-
-        const otp = otpGenerator.generate(6, {
-            upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false,
-        });
-
-        transporter.otp = await bcrypt.hash(otp, 10);
-        transporter.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
-
-        await transporter.save();
-        await sendVerificationSms(mobile, otp);
-
-        res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
-
-    } catch (error) {
-        console.error("Transporter Forgot Password error:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// --- NEW: Add Reset Password Function ---
-const resetPassword = async (req, res) => {
-    try {
-        const { mobile, otp, newPassword } = req.body;
-
-        if (!mobile || !otp || !newPassword) {
-            return res.status(400).json({ message: "Mobile, OTP, and new password are required." });
-        }
-
-        const transporter = await Transporter.findOne({
-            mobile,
-            otpExpires: { $gt: Date.now() },
-        });
-
-        if (!transporter) {
-            return res.status(400).json({ message: "Invalid OTP, user not found, or OTP has expired." });
-        }
-
-        const isMatch = await bcrypt.compare(otp, transporter.otp);
-        if (!isMatch) {
-            return res.status(400).json({ message: "Invalid OTP." });
-        }
-
-        transporter.password = await bcrypt.hash(newPassword, 10);
-        transporter.otp = undefined;
-        transporter.otpExpires = undefined;
-        await transporter.save();
-
-        res.status(200).json({ message: "Password has been reset successfully. Please log in." });
-
-    } catch (error) {
-        console.error("Transporter Reset Password error:", error);
-        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -233,14 +158,12 @@ const updateProfile = async (req, res) => {
         // Update basic fields if provided
         if (name) transporter.name = name;
 
-        // Check for uniqueness if email/mobile are updated
+        // Check for uniqueness if email is updated
         if (email) {
             const existing = await Transporter.findOne({ email, _id: { $ne: transporterId } });
             if (existing) return res.status(409).json({ message: "Email is already in use." });
             transporter.email = email;
         }
-
-        
 
         // Update vehicle info
         if (vehicleModel) transporter.vehicleInfo.model = vehicleModel;
@@ -369,7 +292,5 @@ export {
     checkUser,
     updateProfile,
     scan,
-    showQr,
-    forgotPassword,
-    resetPassword
+    showQr
 };

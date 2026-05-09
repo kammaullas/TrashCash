@@ -27,53 +27,17 @@ export const useAuthStore = create((set) => ({
     registerUser: async (data) => {
         try {
             const res = await axios.post(`${API_URL}/api/auth/register`, data);
-            toast.success(res.data.message); // e.g., "An OTP has been sent..."
-            return res.data; // Return the response which contains the mobile number
+            set({ currentUser: res.data.user, role: "user" });
+            toast.success("Registration successful!");
+            return res.data;
         } catch (error) {
             console.error("Register user failed:", error.response?.data || error.message);
             toast.error(error.response?.data?.message || "User registration failed!");
-            throw error; // Throw error to be caught in the component
-        }
-    },
-
-    // --- NEW function to verify OTP and login ---
-    verifyOtpAndLogin: async (data) => {
-        try {
-            const res = await axios.post(`${API_URL}/api/auth/verify-otp`, data);
-            // On successful verification, the backend sends back the user data and token (in a cookie)
-            set({ currentUser: res.data.user, role: "user" });
-            toast.success("Account verified successfully!");
-            return res.data;
-        } catch (error) {
-            console.error("OTP Verification failed:", error.response?.data || error.message);
-            toast.error(error.response?.data?.message || "OTP Verification failed!");
             throw error;
         }
     },
 
-    sendPasswordResetOtp: async (data) => {
-        try {
-            const res = await axios.post(`${API_URL}/api/auth/forgot-password`, data);
-            toast.success(res.data.message);
-            return res.data;
-        } catch (error) {
-            console.error("Forgot Password failed:", error.response?.data || error.message);
-            toast.error(error.response?.data?.message || "Failed to send OTP!");
-            throw error;
-        }
-    },
-
-    resetPasswordWithOtp: async (data) => {
-        try {
-            const res = await axios.post(`${API_URL}/api/auth/reset-password`, data);
-            toast.success(res.data.message);
-            return res.data;
-        } catch (error) {
-            console.error("Reset Password failed:", error.response?.data || error.message);
-            toast.error(error.response?.data?.message || "Failed to reset password!");
-            throw error;
-        }
-    },
+    // --- User password reset (Removed) ---
 
     // --- Transporter login/register ---
     loginTransporter: async (data) => {
@@ -95,29 +59,6 @@ export const useAuthStore = create((set) => ({
         } catch (error) {
             console.error("Register transporter failed:", error.response?.data || error.message);
             toast.error(error.response?.data?.message || "Transporter registration failed!");
-        }
-    },
-
-    sendTransporterPasswordResetOtp: async (data) => {
-        try {
-            const res = await axios.post(`${API_URL}/api/transporter/forgot-password`, data);
-            toast.success(res.data.message);
-            return res.data;
-        } catch (error) {
-            console.error("Transporter Forgot Password failed:", error.response?.data || error.message);
-            toast.error(error.response?.data?.message || "Failed to send OTP!");
-            throw error;
-        }
-    },
-    resetTransporterPasswordWithOtp: async (data) => {
-        try {
-            const res = await axios.post(`${API_URL}/api/transporter/reset-password`, data);
-            toast.success(res.data.message);
-            return res.data;
-        } catch (error) {
-            console.error("Transporter Reset Password failed:", error.response?.data || error.message);
-            toast.error(error.response?.data?.message || "Failed to reset password!");
-            throw error;
         }
     },
 
@@ -155,7 +96,6 @@ export const useAuthStore = create((set) => ({
 
     // --- checkAuth (Added Detailed Logging) ---
     checkAuth: async () => {
-        console.log("--- Starting authentication check ---");
         set({ loading: true });
 
         const authChecks = [
@@ -165,41 +105,25 @@ export const useAuthStore = create((set) => ({
         ];
 
         for (const check of authChecks) {
-            console.log(`[checkAuth] Attempting to authenticate as: ${check.role}`);
             try {
                 const res = await axios.get(check.url);
-                console.log(`[checkAuth] Response for ${check.role}:`, res.data); // Log the actual response data
 
                 if (res.data && res.data[check.key]) {
-                    console.log(`✅ [checkAuth] Success! Authenticated as ${check.role}.`);
                     set({
                         currentUser: res.data[check.key],
                         role: check.role,
                         loading: false,
                     });
-                    console.log("[checkAuth] State updated. Halting further checks.");
                     return;
-                } else {
-                    console.log(`[checkAuth] Check for ${check.role} succeeded but no user data found in response.`);
                 }
             } catch (error) {
-                console.error(`❌ [checkAuth] Auth check failed for role: ${check.role}.`);
-                if (error.response) {
-                    // The request was made and the server responded with a status code
-                    console.error('[checkAuth] Error data:', error.response.data);
-                    console.error('[checkAuth] Error status:', error.response.status);
-                } else if (error.request) {
-                    // The request was made but no response was received
-                    console.error('[checkAuth] No response received:', error.request);
-                } else {
-                    // Something happened in setting up the request that triggered an Error
-                    console.error('[checkAuth] Error setting up request:', error.message);
+                // Ignore 401 errors during checkAuth as they are expected when logged out
+                if (error.response?.status !== 401) {
+                    console.error(`Error checking auth for ${check.role}:`, error.message);
                 }
             }
         }
 
-        // If the loop completes without finding any authenticated user
-        console.log("--- All auth checks completed. No user authenticated. Setting logged out state. ---");
         set({ currentUser: null, role: null, loading: false });
     },
 }));

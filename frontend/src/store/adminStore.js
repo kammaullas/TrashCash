@@ -87,6 +87,9 @@ const useAdminStore = create((set, get) => ({
             const res = await axios.get(`${ADMIN_API_URL}/check-user`);
             set({ admin: res.data.user, isAuthChecked: true });
         } catch (error) {
+            if (error.response?.status !== 401) {
+                console.error("Admin auth check failed:", error.message);
+            }
             set({ admin: null, isAuthChecked: true });
         }
     },

@@ -18,8 +18,7 @@ export default function Login() {
         e.preventDefault();
         setLoading(true);
         try {
-            const credentials = { loginId, password };
-            const adminCredentials = { email: loginId, password };
+            const credentials = { email: loginId, password };
 
             if (role === "user") {
                 await loginUser(credentials);
@@ -31,7 +30,7 @@ export default function Login() {
                 await loginRecycler(credentials);
                 navigate("/recycler-dashboard");
             } else if (role === "admin") {
-                await loginAdmin(adminCredentials);
+                await loginAdmin(credentials);
                 navigate("/admin/dashboard");
             }
         } catch (error) {
@@ -102,10 +101,10 @@ export default function Login() {
                                 </div>
                             </motion.div>
                             <motion.div variants={itemVariants}>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Email or Mobile Number</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span className="text-gray-400">📧</span></div>
-                                    <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="Enter your email or mobile" className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" required />
+                                    <input type="email" value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="Enter your email" className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" required />
                                 </div>
                             </motion.div>
                             <motion.div variants={itemVariants}>
@@ -115,14 +114,6 @@ export default function Login() {
                                     <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" required />
                                 </div>
                             </motion.div>
-
-                            {(role === 'user' || role === 'transporter') && (
-                                <motion.div variants={itemVariants} className="text-right text-sm">
-                                    <Link to="/forgot-password" className="font-medium text-green-600 hover:text-green-500">
-                                        Forgot your password?
-                                    </Link>
-                                </motion.div>
-                            )}
 
                             <motion.div variants={itemVariants}>
                                 <motion.button type="submit" disabled={loading} className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center disabled:bg-gray-400" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

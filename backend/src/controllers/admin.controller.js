@@ -203,16 +203,16 @@ export const getAllTransporters = async (req, res) => {
  */
 export const createTransporter = async (req, res) => {
     try {
-        // Handles new `mobile` field and nested `vehicleInfo` object
-        const { name, email, mobile, password, vehicleInfo } = req.body;
+        // Handles nested `vehicleInfo` object
+        const { name, email, password, vehicleInfo } = req.body;
 
-        if (!mobile || !password || !vehicleInfo?.licensePlate) {
-            return res.status(400).json({ error: "Mobile, password, and license plate are required." });
+        if (!email || !password || !vehicleInfo?.licensePlate) {
+            return res.status(400).json({ error: "Email, password, and license plate are required." });
         }
 
-        const existingTransporter = await Transporter.findOne({ $or: [{ email }, { mobile }] });
+        const existingTransporter = await Transporter.findOne({ email });
         if (existingTransporter) {
-            return res.status(400).json({ error: "Transporter with this email or mobile already exists." });
+            return res.status(400).json({ error: "Transporter with this email already exists." });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -221,7 +221,6 @@ export const createTransporter = async (req, res) => {
         const newTransporter = new Transporter({
             name,
             email,
-            mobile,
             password: hashedPassword,
             vehicleInfo
         });
@@ -240,11 +239,11 @@ export const createTransporter = async (req, res) => {
 // ## UPDATED ##
 export const updateTransporterById = async (req, res) => {
     try {
-        // Handles mobile, walletBalance, and nested vehicleInfo object
-        const { name, email, mobile, vehicleInfo, walletBalance } = req.body;
+        // Handles walletBalance and nested vehicleInfo object
+        const { name, email, vehicleInfo, walletBalance } = req.body;
         const updatedTransporter = await Transporter.findByIdAndUpdate(
             req.params.id,
-            { name, email, mobile, vehicleInfo, walletBalance },
+            { name, email, vehicleInfo, walletBalance },
             { new: true, runValidators: true }
         ).select('-password');
 
@@ -459,16 +458,16 @@ export const getAllRecyclers = async (req, res) => {
  */
 export const createRecycler = async (req, res) => {
     try {
-        // Handles new `mobile` field and nested `location` object
-        const { name, email, mobile, password, location } = req.body;
+        // Handles nested `location` object
+        const { name, email, password, location } = req.body;
 
-        if (!mobile || !password || !location?.address) {
-            return res.status(400).json({ error: "Mobile, password, and address are required." });
+        if (!email || !password || !location?.address) {
+            return res.status(400).json({ error: "Email, password, and address are required." });
         }
 
-        const existingRecycler = await Recycler.findOne({ $or: [{ email }, { mobile }] });
+        const existingRecycler = await Recycler.findOne({ email });
         if (existingRecycler) {
-            return res.status(400).json({ error: "Recycler with this email or mobile already exists." });
+            return res.status(400).json({ error: "Recycler with this email already exists." });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -477,7 +476,6 @@ export const createRecycler = async (req, res) => {
         const newRecycler = new Recycler({
             name,
             email,
-            mobile,
             password: hashedPassword,
             location
         });
@@ -496,11 +494,11 @@ export const createRecycler = async (req, res) => {
 // ## UPDATED ##
 export const updateRecyclerById = async (req, res) => {
     try {
-        // Handles mobile and nested location object
-        const { name, email, mobile, location } = req.body;
+        // Handles nested location object
+        const { name, email, location } = req.body;
         const updatedRecycler = await Recycler.findByIdAndUpdate(
             req.params.id,
-            { name, email, mobile, location },
+            { name, email, location },
             { new: true, runValidators: true }
         ).select('-password');
 

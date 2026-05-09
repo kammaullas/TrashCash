@@ -10,8 +10,6 @@ import Dashboard from "./pages/Dashboard";
 import TransporterDashboard from "./pages/TransporterDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import RecyclerDashboard from "./pages/RecyclerDashboard";
-import OtpPage from "./pages/OtpPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 import { Toaster } from "react-hot-toast";
 
@@ -112,8 +110,6 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/verify-otp" element={<OtpPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" reverseOrder={false} />

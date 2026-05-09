@@ -7,36 +7,27 @@ import RevenueRequest from "../models/RevenueRequest.model.js";
 
 const register = async (req, res) => {
     try {
-        const { name, email, mobile, password, address, city, state, zipCode } = req.body;
-        console.log("📥 Registration request received for:", { name, mobile, email });
+        const { name, email, password, address, city, state, zipCode } = req.body;
+        console.log("📥 Registration request received for:", { name, email });
 
-        if (!name || !mobile || !password || !address || !city || !state || !zipCode) {
+        if (!name || !email || !password || !address || !city || !state || !zipCode) {
             console.warn("⚠️ Missing required fields for registration.");
-            return res.status(400).json({ message: "Name, mobile, password, and full address are required" });
+            return res.status(400).json({ message: "Name, email, password, and full address are required" });
         }
 
-        const existingRecyclerByMobile = await Recycler.findOne({ mobile });
-        if (existingRecyclerByMobile) {
-            console.warn("❌ Registration failed: Mobile number already exists:", mobile);
-            return res.status(409).json({ message: "Recycler with this mobile number already exists" });
-        }
-
-        if (email) {
-            const existingRecyclerByEmail = await Recycler.findOne({ email });
-            if (existingRecyclerByEmail) {
-                console.warn("❌ Registration failed: Email already exists:", email);
-                return res.status(409).json({ message: "Recycler with this email already exists" });
-            }
+        const existingRecyclerByEmail = await Recycler.findOne({ email });
+        if (existingRecyclerByEmail) {
+            console.warn("❌ Registration failed: Email already exists:", email);
+            return res.status(409).json({ message: "Recycler with this email already exists" });
         }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        console.log("🔑 Password hashed for recycler:", mobile);
+        console.log("🔑 Password hashed for recycler:", email);
 
         const newRecycler = new Recycler({
             name,
             email,
-            mobile,
             password: hashedPassword,
             location: {
                 address,
@@ -68,21 +59,19 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { loginId, password } = req.body; // loginId can be email or mobile
-        console.log("📥 Login request received for:", { loginId });
+        const { email, password } = req.body;
+        console.log("📥 Login request received for:", { email });
 
-        if (!loginId || !password) {
-            console.warn("⚠️ Missing login identifier or password.");
-            return res.status(400).json({ message: "Please provide both your identifier and password" });
+        if (!email || !password) {
+            console.warn("⚠️ Missing email or password.");
+            return res.status(400).json({ message: "Please provide both your email and password" });
         }
 
-        const recycler = await Recycler.findOne({
-            $or: [{ email: loginId }, { mobile: loginId }]
-        });
+        const recycler = await Recycler.findOne({ email });
         console.log("🔍 Recycler lookup result:", recycler ? recycler._id : "Not found");
 
         if (!recycler || !(await bcrypt.compare(password, recycler.password))) {
-            console.warn("❌ Login failed: Invalid credentials for:", loginId);
+            console.warn("❌ Login failed: Invalid credentials for:", email);
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
@@ -120,8 +109,7 @@ const checkUser = async (req, res) => {
         if (!recycler) {
             return res.status(404).json({ message: "Recycler not found" });
         }
-        console.log("✅ checkUser successful for:", recycler.mobile || recycler.email);
-        // --- FIX: Changed "user" key to "recycler" to match frontend expectation ---
+        console.log("✅ checkUser successful for:", recycler.email);
         res.status(200).json({ recycler: recycler });
     } catch (error) {
         console.error("💥 Error in checkUser:", error);
@@ -132,21 +120,16 @@ const checkUser = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         const recyclerId = req.user.id;
-        const { name, email, mobile, address, city, state, zipCode } = req.body;
+        const { name, email, address, city, state, zipCode } = req.body;
 
         const updateData = { location: {} };
         if (name) updateData.name = name;
 
-        // Handle uniqueness constraints if email/mobile are being updated
+        // Handle uniqueness constraints if email is being updated
         if (email) {
             const existing = await Recycler.findOne({ email, _id: { $ne: recyclerId } });
             if (existing) return res.status(409).json({ message: "Email is already in use." });
             updateData.email = email;
-        }
-        if (mobile) {
-            const existing = await Recycler.findOne({ mobile, _id: { $ne: recyclerId } });
-            if (existing) return res.status(409).json({ message: "Mobile number is already in use." });
-            updateData.mobile = mobile;
         }
 
         // Fetch current user to merge address fields

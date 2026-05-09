@@ -8,16 +8,10 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        required: false, // Email is now optional
+        required: true,
         unique: true,
-        // sparse index ensures uniqueness is only applied to documents with an email field.
-        // This allows multiple users to register without an email address.
-        sparse: true,
-    },
-    mobile: {
-        type: String,
-        required: true, // Mobile number is now required
-        unique: true,   // Mobile number must be unique for login
+        lowercase: true,
+        trim: true
     },
     password: {
         type: String,
@@ -40,16 +34,6 @@ const userSchema = new Schema({
     walletBalance: {
         type: Number,
         default: 0
-    },
-    isVerified: {
-        type: Boolean,
-        default: false
-    },
-    otp: {
-        type: String 
-    },
-    otpExpires: {
-        type: Date
     }
 }, { timestamps: true });
 

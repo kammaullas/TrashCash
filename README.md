@@ -73,10 +73,3 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 
-
-Ullas
-
-Charitha
-
-Kavya
-

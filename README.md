@@ -72,24 +72,7 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 ```
 
-🧑‍💻 Our Team
-This project was brought to life by the collaborative effort of a dedicated team:
 
-Venkata Gowtham (Team Lead)
-
-Jessy Robert
-
-Mounika
-
-Pavan Kumar
-
-Sivasai
-
-Chetana
-
-Sandeep
-
-Pranay Sai
 
 Ullas
 
